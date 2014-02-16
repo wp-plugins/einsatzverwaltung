@@ -4,7 +4,7 @@ Donate link: https://flattr.com/t/2638688
 Tags: feuerwehr, einsatz
 Requires at least: 3.1.0
 Tested up to: 3.8.1
-Stable tag: 0.1.1
+Stable tag: 0.1.2
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,7 +25,7 @@ ACHTUNG: In Version 0.2 wird sich noch etwas an der Datenstruktur &auml;ndern, b
 
 == Installation ==
 
-Das Plugin kann entweder aus WordPress heraus aus dem Pluginverzeichnis installiert werden oder aber durch hochladen der Plugindateien in das Verzeichnis `/wp-content/plugins/`.
+Das Plugin kann entweder aus WordPress heraus aus dem Pluginverzeichnis installiert werden oder aber durch Hochladen der Plugindateien in das Verzeichnis `/wp-content/plugins/`.
 
 In beiden F&auml;llen muss das Plugin erst aktiviert werden, bevor es benutzt werden kann.
 
@@ -36,6 +36,9 @@ In beiden F&auml;llen muss das Plugin erst aktiviert werden, bevor es benutzt we
 Die Aufgaben f&uuml;r die kommenden Versionen werden auf [GitHub](https://github.com/abrain/einsatzverwaltung/issues) verwaltet, Feedback ist jederzeit willkommen.
 
 == Changelog ==
+
+= 0.1.2 =
+* Kompatibilität mit PHP < 5.3.0 wiederhergestellt
 
 = 0.1.1 =
 * Hinweis auf Entwicklungszustand eingef&uuml;gt
@@ -48,6 +51,9 @@ Die Aufgaben f&uuml;r die kommenden Versionen werden auf [GitHub](https://github
 * Widget zeigt die aktuellsten X Eins&auml;tze
 
 == Upgrade Notice ==
+
+= 0.1.2 =
+Kompatibilität mit PHP < 5.3.0 wiederhergestellt
 
 = 0.1.1 =
 Hinweis auf Entwicklungszustand eingef&uuml;gt
