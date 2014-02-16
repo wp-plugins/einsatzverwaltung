@@ -3,12 +3,16 @@
 Plugin Name: Einsatzverwaltung
 Plugin URI: https://github.com/abrain/einsatzverwaltung
 Description: Verwaltung von Feuerwehreins&auml;tzen
-Version: 0.1.0
+Version: 0.1.2
 Author: Andreas Brain
 Author URI: http://www.abrain.de
 License: GPLv2
 Text Domain: einsatzverwaltung
 */
+
+define( 'EINSATZVERWALTUNG__PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
+
+require_once( EINSATZVERWALTUNG__PLUGIN_DIR . 'class.widget.php' );
 
 add_action( 'init', 'einsatzverwaltung_create_post_type' );
 
@@ -221,27 +225,30 @@ add_action( 'save_post', 'einsatzverwaltung_save_postdata' );
 function einsatzverwaltung_get_einsatzbericht_header($post) {
     if(get_post_type($post) == "einsatz") {
         $alarmzeit = get_post_meta($post->ID, 'einsatz_alarmzeit', true);
-        
         $einsatzende = get_post_meta($post->ID, 'einsatz_einsatzende', true);
+        
+        $dauerstring = "?";
         if(!empty($alarmzeit) && !empty($einsatzende)) {
-            $datetime1 = date_create($alarmzeit);
-            $datetime2 = date_create($einsatzende);
-            $interval = date_diff($datetime1, $datetime2);
+            $timestamp1 = strtotime($alarmzeit);
+            $timestamp2 = strtotime($einsatzende);
+            $differenz = $timestamp2 - $timestamp1;
+            $dauer = intval($differenz / 60);
             
-            // nur weitermachen, wenn die Differenz nicht negativ ist
-            if($interval->format('%r') === "") {
-                $dauer_h = intval($interval->format('%h'));
-                $dauer_m = intval($interval->format('%i'));
-                if($dauer_h == 0 && $dauer_m > 0) {
-                    $dauerstring = $dauer_m." Minute".($dauer_m > 1 ? "n" : "");
-                } else if ($dauer_h > 0) {
+            if(empty($dauer) || !is_numeric($dauer)) {
+                $dauerstring = "-";
+            } else {
+                if($dauer <= 0) {
+                    $dauerstring = "-";
+                } else if($dauer < 60) {
+                    $dauerstring = $dauer." Minuten";
+                } else {
+                    $dauer_h = intval($dauer / 60);
+                    $dauer_m = $dauer % 60;
                     $dauerstring = $dauer_h." Stunde".($dauer_h > 1 ? "n" : "");
                     if($dauer_m > 0) {
                         $dauerstring .= " ".$dauer_m." Minute".($dauer_m > 1 ? "n" : "");
                     }
                 }
-            } else {
-                $dauerstring = "-";
             }
         } else {
             $dauerstring = "-";
@@ -514,149 +521,6 @@ function einsatzverwaltung_print_einsatzjahre( $atts )
     return $string;
 }
 add_shortcode( 'einsatzjahre', 'einsatzverwaltung_print_einsatzjahre' );
-
-
-##############################
-#           WIDGET           #
-##############################
-
-class Einsatzverwaltung_Widget extends WP_Widget {
-
-	/**
-	 * Register widget with WordPress.
-	 */
-	public function __construct() {
-		parent::__construct(
-	 		'einsatzverwaltung_widget', // Base ID
-			'Letzte Eins&auml;tze', // Name
-			array( 'description' => __( 'Zeigt die neuesten Eins&auml;tze an', 'einsatzverwaltung'), ) // Args
-		);
-	}
-
-	/**
-	 * Front-end display of widget.
-	 *
-	 * @see WP_Widget::widget()
-	 *
-	 * @param array $args     Widget arguments.
-	 * @param array $instance Saved values from database.
-	 */
-	public function widget( $args, $instance ) {
-		extract( $args );
-		$title = apply_filters( 'widget_title', $instance['title'] );
-		$anzahl = $instance['anzahl'];
-		$zeigeDatum = $instance['zeigeDatum'];
-		$zeigeZeit = $instance['zeigeZeit'];
-		
-		if ( empty( $title ) ) {
-		  $title = "Letzte Eins&auml;tze";
-		}
-		
-		if ( !isset($anzahl) || empty ($anzahl) || !is_numeric($anzahl) || $anzahl < 1) {
-		  $anzahl = 3;
-		}
-
-        $letzteEinsaetze = "";
-		$query = new WP_Query( '&post_type=einsatz&post_status=publish&posts_per_page='.$anzahl );
-        while($query->have_posts()) {
-            $p = $query->next_post();
-            $letzteEinsaetze .= "<li>";
-            
-            $letzteEinsaetze .= "<a href=\"".get_permalink($p->ID)."\" rel=\"bookmark\" class=\"einsatzmeldung\">";
-            $meldung = get_the_title($p->ID);
-            if ( !empty($meldung) ) {
-                $letzteEinsaetze .= $meldung;
-            } else {
-                $letzteEinsaetze .= "(kein Titel)";
-            }
-            $letzteEinsaetze .= "</a>";
-            
-            if($zeigeDatum) {
-                setlocale(LC_TIME, "de_DE");
-                $timestamp = strtotime($p->post_date);
-                $letzteEinsaetze .= "<br>";
-                $letzteEinsaetze .= "<span class=\"einsatzdatum\">".strftime("%d. %b %Y", $timestamp)."</span>";
-                if($zeigeZeit) {
-                    $letzteEinsaetze .= " | <span class=\"einsatzzeit\">".date("H:i", $timestamp)." Uhr</span>";
-                }
-            }
-            $letzteEinsaetze .= "</li>";
-        }
-
-		echo $before_widget;
-		echo $before_title . $title . $after_title;
-        echo ( empty($letzteEinsaetze) ? "Keine Eins&auml;tze" : "<ul>".$letzteEinsaetze."</ul>");
-		echo $after_widget;
-	}
-
-	/**
-	 * Sanitize widget form values as they are saved.
-	 *
-	 * @see WP_Widget::update()
-	 *
-	 * @param array $new_instance Values just sent to be saved.
-	 * @param array $old_instance Previously saved values from database.
-	 *
-	 * @return array Updated safe values to be saved.
-	 */
-	public function update( $new_instance, $old_instance ) {
-		$instance = array();
-		$instance['title'] = strip_tags( $new_instance['title'] );
-		
-		$anzahl = $new_instance['anzahl'];
-        if ( empty ($anzahl) || !is_numeric($anzahl) || $anzahl < 1) {
-            $instance['anzahl'] = $old_instance['anzahl'];
-        } else {
-            $instance['anzahl'] = $new_instance['anzahl'];
-        }
-        
-        $instance['zeigeDatum'] = $new_instance['zeigeDatum'];
-        $instance['zeigeZeit'] = $new_instance['zeigeZeit'];
-
-		return $instance;
-	}
-
-	/**
-	 * Back-end widget form.
-	 *
-	 * @see WP_Widget::form()
-	 *
-	 * @param array $instance Previously saved values from database.
-	 */
-	public function form( $instance ) {
-		if ( isset( $instance[ 'title' ] ) ) {
-			$title = $instance[ 'title' ];
-		}
-		else {
-			$title = __( 'Letzte Eins&auml;tze', 'einsatzverwaltung');
-		}
-		
-		if ( isset( $instance[ 'anzahl' ] ) ) {
-			$anzahl = $instance[ 'anzahl' ];
-		}
-		else {
-			$anzahl = 3;
-		}
-		
-		$zeigeDatum = $instance[ 'zeigeDatum' ];
-		$zeigeZeit = $instance[ 'zeigeZeit' ];
-		
-		echo '<p><label for="'.$this->get_field_id( 'title' ).'">' . __( 'Titel:' , 'einsatzverwaltung') . '</label>';
-		echo '<input class="widefat" id="' . $this->get_field_id( 'title' ) . '" name="' . $this->get_field_name( 'title' ) . '" type="text" value="' . esc_attr( $title ).'" /></p>';
-		
-		echo '<p><label for="'.$this->get_field_id( 'anzahl' ).'">' . __( 'Anzahl:' , 'einsatzverwaltung') . '</label>';
-		echo '<input id="'.$this->get_field_id( 'anzahl' ).'" name="'.$this->get_field_name( 'anzahl' ).'" type="text" value="'.$anzahl.'" size="3" /></p>';
-
-		echo '<p><input id="'.$this->get_field_id( 'zeigeDatum' ).'" name="'.$this->get_field_name( 'zeigeDatum' ).'" type="checkbox" '.($zeigeDatum ? 'checked="checked" ' : '').'/>';
-		echo '&nbsp;<label for="'.$this->get_field_id( 'zeigeDatum' ).'">' . __( 'Datum anzeigen' , 'einsatzverwaltung') . '</label></p>';
-
-		echo '<p style="text-indent:1em;"><input id="'.$this->get_field_id( 'zeigeZeit' ).'" name="'.$this->get_field_name( 'zeigeZeit' ).'" type="checkbox" '.($zeigeZeit ? 'checked="checked" ' : '').'/>';
-		echo '&nbsp;<label for="'.$this->get_field_id( 'zeigeZeit' ).'">' . __('Zeit anzeigen (nur in Kombination mit Datum)' , 'einsatzverwaltung') . '</label></p>';
-	}
-}
-
-// register Einsatz_Widget widget
-add_action( 'widgets_init', create_function( '', 'register_widget( "einsatzverwaltung_widget" );' ) );
 
 
 /*
