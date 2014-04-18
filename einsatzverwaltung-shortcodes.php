@@ -34,7 +34,7 @@ function einsatzverwaltung_print_einsatzliste( $atts )
         while ( $query->have_posts() ) {
             $query->next_post();
             
-            $einsatz_nummer = get_post_meta($query->post->ID, 'einsatz_nummer', true);
+            $einsatz_nummer = get_post_field('post_name', $query->post->ID);
             $alarmzeit = get_post_meta($query->post->ID, 'einsatz_alarmzeit', true);
             $einsatz_timestamp = strtotime($alarmzeit);
             
@@ -74,16 +74,10 @@ add_shortcode( 'einsatzliste', 'einsatzverwaltung_print_einsatzliste' );
 function einsatzverwaltung_print_einsatzjahre( $atts )
 {
     global $year;
-    $jahre = array();
-    $query = new WP_Query( '&post_type=einsatz&post_status=publish&nopaging=true' );
-    while($query->have_posts()) {
-        $p = $query->next_post();
-        $timestamp = strtotime($p->post_date);
-        $jahre[date("Y", $timestamp)] = 1;
-    }
+    $jahre = einsatzverwaltung_get_jahremiteinsatz();
     
     $string = "";
-    foreach (array_keys($jahre) as $jahr) {
+    foreach ($jahre as $jahr) {
         if(!empty($string)) {
             $string .= " | ";
         }
