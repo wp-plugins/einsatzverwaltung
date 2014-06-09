@@ -3,13 +3,14 @@
 Plugin Name: Einsatzverwaltung
 Plugin URI: http://www.abrain.de/software/einsatzverwaltung/
 Description: Verwaltung von Feuerwehreins&auml;tzen
-Version: 0.4.0
+Version: 0.5.0
 Author: Andreas Brain
 Author URI: http://www.abrain.de
 License: GPLv2
 Text Domain: einsatzverwaltung
 */
 
+define( 'EINSATZVERWALTUNG__PLUGIN_BASE', plugin_basename(__FILE__) );
 define( 'EINSATZVERWALTUNG__PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'EINSATZVERWALTUNG__PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'EINSATZVERWALTUNG__SCRIPT_URL', EINSATZVERWALTUNG__PLUGIN_URL . 'js/' );
@@ -117,6 +118,27 @@ function einsatzverwaltung_create_post_type() {
         'show_in_nav_menus' => false);
     register_taxonomy( 'exteinsatzmittel', 'einsatz', $args_exteinsatzmittel );
     
+    $args_alarmierungsart = array(
+        'label' => 'Alarmierungsart',
+        'labels' => array(
+            'name' => 'Alarmierungsarten',
+            'singular_name' => 'Alarmierungsart',
+            'menu_name' => 'Alarmierungsarten',
+            'all_items' => 'Alle Alarmierungsarten',
+            'edit_item' => 'Alarmierungsart bearbeiten',
+            'view_item' => 'Alarmierungsart ansehen',
+            'update_item' => 'Alarmierungsart aktualisieren',
+            'add_new_item' => 'Neue Alarmierungsart',
+            'new_item_name' => 'Alarmierungsart hinzuf&uuml;gen',
+            'search_items' => 'Alarmierungsart suchen',
+            'popular_items' => 'H&auml;ufige Alarmierungsarten',
+            'separate_items_with_commas' => 'Alarmierungsarten mit Kommata trennen',
+            'add_or_remove_items' => 'Alarmierungsarten hinzuf&uuml;gen oder entfernen',
+            'choose_from_most_used' => 'Aus h&auml;ufigen Alarmierungsarten w&auml;hlen'),
+        'public' => true,
+        'show_in_nav_menus' => false);
+    register_taxonomy( 'alarmierungsart', 'einsatz', $args_alarmierungsart );
+    
     // more rewrite rules
     add_rewrite_rule('einsaetze/([0-9]{4})/?$', 'index.php?post_type=einsatz&year=$matches[1]', 'top');
 }
@@ -202,7 +224,10 @@ function einsatzverwaltung_display_meta_box( $post ) {
     $nummer = get_post_field('post_name', $post->ID);
     $alarmzeit = get_post_meta( $post->ID, $key = 'einsatz_alarmzeit', $single = true );
     $einsatzende = get_post_meta( $post->ID, $key = 'einsatz_einsatzende', $single = true );
+    $einsatzort = get_post_meta( $post->ID, $key = 'einsatz_einsatzort', $single = true );
+    $einsatzleiter = get_post_meta( $post->ID, $key = 'einsatz_einsatzleiter', $single = true );
     $fehlalarm = get_post_meta( $post->ID, $key = 'einsatz_fehlalarm', $single = true );
+    $mannschaftsstaerke = get_post_meta( $post->ID, $key = 'einsatz_mannschaft', $single = true );
 
     echo '<table><tbody>';
 
@@ -217,6 +242,17 @@ function einsatzverwaltung_display_meta_box( $post ) {
     
     echo '<tr><td><label for="einsatzverwaltung_fehlalarm">'. __("Fehlalarm", 'einsatzverwaltung' ) . '</label></td>';
     echo '<td><input type="checkbox" id="einsatzverwaltung_fehlalarm" name="einsatzverwaltung_fehlalarm" value="1" ' . einsatzverwaltung_checked($fehlalarm) . '/></td></tr>';
+    
+    echo '<tr><td>&nbsp;</td><td>&nbsp;</td></tr>';
+    
+    echo '<tr><td><label for="einsatzverwaltung_einsatzort">'. __("Einsatzort", 'einsatzverwaltung' ) . '</label></td>';
+    echo '<td><input type="text" id="einsatzverwaltung_einsatzort" name="einsatzverwaltung_einsatzort" value="'.esc_attr($einsatzort).'" size="20" /></td></tr>';
+    
+    echo '<tr><td><label for="einsatzverwaltung_einsatzleiter">'. __("Einsatzleiter", 'einsatzverwaltung' ) . '</label></td>';
+    echo '<td><input type="text" id="einsatzverwaltung_einsatzleiter" name="einsatzverwaltung_einsatzleiter" value="'.esc_attr($einsatzleiter).'" size="20" /></td></tr>';
+    
+    echo '<tr><td><label for="einsatzverwaltung_mannschaft">'. __("Mannschaftsst&auml;rke", 'einsatzverwaltung' ) . '</label></td>';
+    echo '<td><input type="text" id="einsatzverwaltung_mannschaft" name="einsatzverwaltung_mannschaft" value="'.esc_attr($mannschaftsstaerke).'" size="20" /></td></tr>';
     
     echo '</tbody></table>';
 }
@@ -301,12 +337,24 @@ function einsatzverwaltung_save_postdata( $post_id ) {
             $einsatzende = "";
         }
         
+        // Einsatzort validieren
+        $einsatzort = sanitize_text_field( $_POST['einsatzverwaltung_einsatzort'] );
+        
+        // Einsatzleiter validieren
+        $einsatzleiter = sanitize_text_field( $_POST['einsatzverwaltung_einsatzleiter'] );
+        
+        // Mannschaftsstärke validieren
+        $mannschaftsstaerke = einsatzverwaltung_sanitize_pos_number( $_POST['einsatzverwaltung_mannschaft'] , 0 );
+        
         // Fehlalarm validieren
         $fehlalarm = einsatzverwaltung_sanitize_checkbox(array($_POST, 'einsatzverwaltung_fehlalarm'));
         
         // Metadaten schreiben
         update_post_meta($post_id, 'einsatz_alarmzeit', date_format($alarmzeit, 'Y-m-d H:i'));
         update_post_meta($post_id, 'einsatz_einsatzende', ($einsatzende == "" ? "" : date_format($einsatzende, 'Y-m-d H:i')));
+        update_post_meta($post_id, 'einsatz_einsatzort', $einsatzort);
+        update_post_meta($post_id, 'einsatz_einsatzleiter', $einsatzleiter);
+        update_post_meta($post_id, 'einsatz_mannschaft', $mannschaftsstaerke);
         update_post_meta($post_id, 'einsatz_fehlalarm', $fehlalarm);
         
         if(!empty($update_args)) {
@@ -352,6 +400,20 @@ function einsatzverwaltung_sanitize_checkbox($input)
 /**
  * 
  */
+function einsatzverwaltung_sanitize_pos_number($input, $defaultvalue = 0)
+{
+    $val = intval($input);
+    if(is_numeric($val) && $val >= 0) {
+        return $val;
+    } else {
+        return $defaultvalue;
+    }
+}
+
+
+/**
+ * 
+ */
 function einsatzverwaltung_checked($value)
 {
     return ($value == 1 ? 'checked="checked" ' : '');
@@ -384,6 +446,17 @@ function einsatzverwaltung_get_einsatzbericht_header($post) {
     if(get_post_type($post) == "einsatz") {
         $alarmzeit = get_post_meta($post->ID, 'einsatz_alarmzeit', true);
         $einsatzende = get_post_meta($post->ID, 'einsatz_einsatzende', true);
+        
+        $alarmierungsart = get_the_terms( $post->ID, 'alarmierungsart' );
+        if ( $alarmierungsart && ! is_wp_error( $alarmierungsart ) ) {
+            $alarm_namen = array();
+            foreach ( $alarmierungsart as $alarmart ) {
+                $alarm_namen[] = $alarmart->name;
+            }
+            $alarm_string = join( ", ", $alarm_namen );
+        } else {
+            $alarm_string = '';
+        }
         
         $dauerstring = "?";
         if(!empty($alarmzeit) && !empty($einsatzende)) {
@@ -420,6 +493,12 @@ function einsatzverwaltung_get_einsatzbericht_header($post) {
             $art = (empty($art) ? 'Fehlalarm' : $art.' (Fehlalarm)');
         }
         
+        $einsatzort = get_post_meta( $post->ID, $key = 'einsatz_einsatzort', $single = true );
+        
+        $einsatzleiter = get_post_meta( $post->ID, $key = 'einsatz_einsatzleiter', $single = true );
+        
+        $mannschaft = get_post_meta( $post->ID, $key = 'einsatz_mannschaft', $single = true );
+        
         $fahrzeuge = get_the_terms( $post->ID, 'fahrzeug' );
         if ( $fahrzeuge && ! is_wp_error( $fahrzeuge ) ) {
             $fzg_namen = array();
@@ -450,8 +529,12 @@ function einsatzverwaltung_get_einsatzbericht_header($post) {
         
         $headerstring = "<strong>Datum:</strong> ".$einsatz_datum."<br>";
         $headerstring .= "<strong>Alarmzeit:</strong> ".$einsatz_zeit."<br>";
+        $headerstring .= einsatzverwaltung_get_detail_string('Alarmierungsart:', $alarm_string);
         $headerstring .= einsatzverwaltung_get_detail_string('Dauer:', $dauerstring);
         $headerstring .= einsatzverwaltung_get_detail_string('Art:', $art);
+        $headerstring .= einsatzverwaltung_get_detail_string('Einsatzort:', $einsatzort);
+        $headerstring .= einsatzverwaltung_get_detail_string('Einsatzleiter:', $einsatzleiter);
+        $headerstring .= einsatzverwaltung_get_numeric_detail_string('Mannschaftsst&auml;rke:', $mannschaft, true);
         $headerstring .= einsatzverwaltung_get_detail_string('Fahrzeuge:', $fzg_string);
         $headerstring .= einsatzverwaltung_get_detail_string('Weitere Kr&auml;fte:', $ext_string);
         
@@ -465,7 +548,18 @@ function einsatzverwaltung_get_detail_string($title, $value, $newline = true)
 {
     $hide_empty_details = (get_option('einsatzvw_einsatz_hideemptydetails') == 1 ? true : false);
     
-    if(!$hide_empty_details || $hide_empty_details && !empty($value)) {
+    if(!$hide_empty_details || !empty($value)) {
+        return '<strong>'.$title.'</strong> '.$value.($newline ? '<br>' : '');
+    }
+    return '';
+}
+
+
+function einsatzverwaltung_get_numeric_detail_string($title, $value, $is_zero_empty = true, $newline = true)
+{
+    $hide_empty_details = (get_option('einsatzvw_einsatz_hideemptydetails') == 1 ? true : false);
+    
+    if(!($hide_empty_details && $is_zero_empty && $value == 0)) {
         return '<strong>'.$title.'</strong> '.$value.($newline ? '<br>' : '');
     }
     return '';

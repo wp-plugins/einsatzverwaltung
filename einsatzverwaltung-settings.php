@@ -13,6 +13,16 @@ add_action('admin_menu', 'einsatzverwaltung_settings_menu');
 
 
 /**
+ * Zeigt einen Link zu den Einstellungen direkt auf der Plugin-Seite an
+ */
+function einsatzverwaltung_add_action_links ( $links ) {
+    $mylinks = array('<a href="' . admin_url( 'options-general.php?page='.EVW_SETTINGS_SLUG ) . '">Einstellungen</a>');
+    return array_merge( $links, $mylinks );
+}
+add_filter( 'plugin_action_links_' . EINSATZVERWALTUNG__PLUGIN_BASE , 'einsatzverwaltung_add_action_links' );
+
+
+/**
  * Macht Einstellungen im System bekannt und regelt die Zugehörigkeit zu Abschnitten auf Einstellungsseiten
  */
 function einsatzverwaltung_register_settings()
@@ -124,8 +134,8 @@ function einsatzverwaltung_settings_page()
     
     echo '<div id="einsatzverwaltung_contactinfo">';
     echo '<h3>Entwicklerkontakt</h3>';
-    echo 'Twitter: <a href="https://twitter.com/DMdsW">@DMdsW</a><br>';
-    echo 'App.net: <a href="https://alpha.app.net/abrain">@abrain</a><br>';
+    echo 'Twitter: <a href="https://twitter.com/einsatzvw">@einsatzvw</a><br>';
+    echo 'App.net: <a href="https://alpha.app.net/einsatzverwaltung">@einsatzverwaltung</a><br>';
     echo 'eMail: <a href="mailto:kontakt@abrain.de">kontakt@abrain.de</a>';
     echo '</div>';
     
