@@ -3,7 +3,7 @@
 Plugin Name: Einsatzverwaltung
 Plugin URI: http://www.abrain.de/software/einsatzverwaltung/
 Description: Verwaltung von Feuerwehreins&auml;tzen
-Version: 0.5.1
+Version: 0.5.2
 Author: Andreas Brain
 Author URI: http://www.abrain.de
 License: GPLv2
@@ -53,7 +53,11 @@ function einsatzverwaltung_create_post_type() {
         ),
         'supports' => array('title', 'editor', 'thumbnail'),
         'show_in_nav_menus' => false,
-        'menu_position' => 5);
+        'menu_position' => 5
+    );
+    if(einsatzverwaltung_is_min_wp_version("3.9")) {
+        $args_einsatz['menu_icon'] = 'dashicons-media-document';
+    }
     register_post_type( 'einsatz', $args_einsatz);
     
     $args_einsatzart = array(
@@ -210,8 +214,16 @@ function einsatzverwaltung_enqueue_edit_scripts($hook) {
         wp_enqueue_script('einsatzverwaltung-edit-script', EINSATZVERWALTUNG__SCRIPT_URL . 'einsatzverwaltung-edit.js', array('jquery'));
         wp_enqueue_style('einsatzverwaltung-edit', EINSATZVERWALTUNG__STYLE_URL . 'style-edit.css');
     }
+    
+    wp_enqueue_style('einsatzverwaltung-admin', EINSATZVERWALTUNG__STYLE_URL . 'style-admin.css');
 }
 add_action( 'admin_enqueue_scripts', 'einsatzverwaltung_enqueue_edit_scripts' );
+
+
+function einsatzverwaltung_enqueue_frontend_style() {
+	wp_enqueue_style( 'einsatzverwaltung-frontend', EINSATZVERWALTUNG__STYLE_URL . 'style-frontend.css' ); 
+}
+add_action( 'wp_enqueue_scripts', 'einsatzverwaltung_enqueue_frontend_style' );
 
 
 /**
@@ -305,7 +317,7 @@ function einsatzverwaltung_save_postdata( $post_id ) {
         }
         
         // Schreibrechte prüfen
-        if ( !current_user_can( 'edit_post', $post_id ) ) {
+        if ( !current_user_can( 'manage_options', $post_id ) ) {
             return;
         }
         
@@ -746,6 +758,43 @@ function einsatzverwaltung_get_jahremiteinsatz()
 }
 
 
+/**
+ * Zahl der Einsatzberichte im Dashboard anzeigen
+ */
+function einsatzverwaltung_add_einsatzberichte_to_dashboard($arr) {
+    if (post_type_exists('einsatz')) {
+        $pt = 'einsatz';
+        $pt_info = get_post_type_object($pt); // get a specific CPT's details
+        $num_posts = wp_count_posts($pt); // retrieve number of posts associated with this CPT
+        $num = number_format_i18n($num_posts->publish); // number of published posts for this CPT
+        $text = _n( $pt_info->labels->singular_name, $pt_info->labels->name, intval($num_posts->publish) ); // singular/plural text label for CPT
+        echo '<li class="'.$pt_info->name.'-count page-count">';
+        echo (current_user_can('manage_options') ? '<a href="edit.php?post_type='.$pt.'">'.$num.' '.$text.'</a>' : '<span>'.$num.' '.$text.'</span>' ).'</li>';
+    }
+}
+add_action('dashboard_glance_items', 'einsatzverwaltung_add_einsatzberichte_to_dashboard'); // since WP 3.8
+
+
+/**
+ * Zahl der Einsatzberichte im Dashboard anzeigen (für WordPress 3.7 und älter)
+ */
+function einsatzverwaltung_add_einsatzberichte_to_dashboard_legacy() {
+    if (post_type_exists('einsatz')) {
+        $pt = 'einsatz';
+        $pt_info = get_post_type_object($pt); // get a specific CPT's details
+        $num_posts = wp_count_posts($pt); // retrieve number of posts associated with this CPT
+        $num = number_format_i18n($num_posts->publish); // number of published posts for this CPT
+        $text = _n( $pt_info->labels->singular_name, $pt_info->labels->name, intval($num_posts->publish) ); // singular/plural text label for CPT
+        echo '<tr><td class="first b">';
+        echo (current_user_can('manage_options') ? '<a href="edit.php?post_type='.$pt.'">'.$num.'</a>' : $num);
+        echo '</td><td class="t">';
+        echo (current_user_can('manage_options') ? '<a href="edit.php?post_type='.$pt.'">'.$text.'</a>' : $text);
+        echo '</td></tr>';
+    }
+}
+add_action('right_now_content_table_end', 'einsatzverwaltung_add_einsatzberichte_to_dashboard_legacy'); // before WP 3.8
+
+
 /*
  * Einsatzberichte-Menü vor Nicht-Administratoren verstecken
  */
@@ -764,6 +813,31 @@ function check_php_version($ver) {
     if (version_compare($php_version, $ver) < 0) {
         wp_die("Das Plugin Einsatzverwaltung ben&ouml;tigt PHP Version $ver oder neuer. Bitte aktualisieren Sie PHP auf Ihrem Server!", 'Veraltete PHP-Version!', array('back_link' => true));
     }
+}
+
+function einsatzverwaltung_is_min_wp_version($ver) {
+    $currentversionparts = explode(".", get_bloginfo('version'));
+    if(count($currentversionparts) < 3) {
+        $currentversionparts[2] = "0";
+    }
+    
+    $neededversionparts = explode(".", $ver);
+    if(count($neededversionparts) < 3) {
+        $neededversionparts[2] = "0";
+    }
+    
+    if(intval($neededversionparts[0]) > intval($currentversionparts[0])) {
+        return false;
+    } else if(intval($neededversionparts[0]) == intval($currentversionparts[0]) &&
+                intval($neededversionparts[1]) > intval($currentversionparts[1])) {
+        return false;
+    } else if(intval($neededversionparts[0]) == intval($currentversionparts[0]) &&
+                intval($neededversionparts[1]) == intval($currentversionparts[1]) &&
+                intval($neededversionparts[2]) > intval($currentversionparts[2])) {
+        return false;
+    }
+    
+    return true;
 }
 
 ?>
