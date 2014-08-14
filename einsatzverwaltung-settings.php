@@ -50,16 +50,31 @@ function einsatzverwaltung_register_settings()
     );
     add_settings_field( 'einsatzvw_einsatz_hideemptydetails',
         'Einsatzdetails',
-        'einsatzverwaltung_echo_settings_checkbox',
+        'einsatzverwaltung_echo_settings_empty_details',
         EVW_SETTINGS_SLUG,
-        'einsatzvw_settings_view',
-        array('einsatzvw_einsatz_hideemptydetails', 'Nicht ausgef&uuml;llte Details ausblenden (z.B. wenn <em>Weitere Kr&auml;fte</em> leer ist)')
+        'einsatzvw_settings_view'
+    );
+    add_settings_field( 'einsatzvw_settings_archivelinks',
+        'Gefilterte Einsatzübersicht verlinken',
+        'einsatzverwaltung_echo_settings_archive',
+        EVW_SETTINGS_SLUG,
+        'einsatzvw_settings_view'
+    );
+    add_settings_field( 'einsatzvw_settings_excerpt',
+        'Auszug / Exzerpt',
+        'einsatzverwaltung_echo_settings_excerpt',
+        EVW_SETTINGS_SLUG,
+        'einsatzvw_settings_view'
     );
     
     // Registration
     register_setting( 'einsatzvw_settings', 'einsatzvw_einsatznummer_stellen', 'einsatzverwaltung_sanitize_einsatznummer_stellen' );
     register_setting( 'einsatzvw_settings', 'einsatzvw_einsatznummer_lfdvorne', 'einsatzverwaltung_sanitize_checkbox' );
     register_setting( 'einsatzvw_settings', 'einsatzvw_einsatz_hideemptydetails', 'einsatzverwaltung_sanitize_checkbox' );
+    register_setting( 'einsatzvw_settings', 'einsatzvw_show_exteinsatzmittel_archive', 'einsatzverwaltung_sanitize_checkbox' );
+    register_setting( 'einsatzvw_settings', 'einsatzvw_show_einsatzart_archive', 'einsatzverwaltung_sanitize_checkbox' );
+    register_setting( 'einsatzvw_settings', 'einsatzvw_show_fahrzeug_archive', 'einsatzverwaltung_sanitize_checkbox' );
+    register_setting( 'einsatzvw_settings', 'einsatzvw_show_links_in_excerpt', 'einsatzverwaltung_sanitize_checkbox' );
 }
 add_action( 'admin_init', 'einsatzverwaltung_register_settings' );
 
@@ -71,7 +86,8 @@ function einsatzverwaltung_echo_settings_checkbox($args)
 {
     $id = $args[0];
     $text = $args[1];
-    printf('<input type="checkbox" value="1" id="%1$s" name="%1$s" %2$s/><label for="%1$s">%3$s</label>', $id, einsatzverwaltung_checked(get_option($id)), $text);
+    $default = (count($args) > 2 ? $args[2] : false);
+    printf('<input type="checkbox" value="1" id="%1$s" name="%1$s" %2$s/><label for="%1$s">%3$s</label>', $id, einsatzverwaltung_checked(get_option($id, $default)), $text);
 }
 
 
@@ -109,6 +125,37 @@ function einsatzverwaltung_sanitize_einsatznummer_stellen($input)
     } else {
         return EINSATZVERWALTUNG__EINSATZNR_STELLEN;
     }
+}
+
+
+/**
+ * 
+ */
+function einsatzverwaltung_echo_settings_empty_details() {
+    einsatzverwaltung_echo_settings_checkbox(array('einsatzvw_einsatz_hideemptydetails', 'Nicht ausgef&uuml;llte Details ausblenden', EINSATZVERWALTUNG__D__HIDE_EMPTY_DETAILS));
+    echo '<p class="description">Ein Einsatzdetail gilt als nicht ausgef&uuml;llt, wenn das entsprechende Textfeld oder die entsprechende Liste leer ist. Bei der Mannschaftsst&auml;rke z&auml;hlt auch eine eingetragene 0 als leer.</p>';
+}
+
+
+/**
+ * 
+ */
+function einsatzverwaltung_echo_settings_archive() {
+    einsatzverwaltung_echo_settings_checkbox(array('einsatzvw_show_einsatzart_archive', 'Einsatzart', EINSATZVERWALTUNG__D__SHOW_EINSATZART_ARCHIVE));
+    echo '<br>';
+    einsatzverwaltung_echo_settings_checkbox(array('einsatzvw_show_exteinsatzmittel_archive', 'Externe Einsatzkr&auml;fte', EINSATZVERWALTUNG__D__SHOW_EXTEINSATZMITTEL_ARCHIVE));
+    echo '<br>';
+    einsatzverwaltung_echo_settings_checkbox(array('einsatzvw_show_fahrzeug_archive', 'Fahrzeuge', EINSATZVERWALTUNG__D__SHOW_FAHRZEUG_ARCHIVE));
+    echo '<p class="description">F&uuml;r alle hier aktivierten Arten von Einsatzdetails werden im Kopfbereich des Einsatzberichts f&uuml;r alle auftretenden Werte Links zu einer gefilterten Einsatz&uuml;bersicht angezeigt. Beispielsweise kann man damit alle Eins&auml;tze unter Beteiligung einer bestimmten externen Einsatzkraft auflisten lassen.</p>';
+}
+
+
+/**
+ * 
+ */
+function einsatzverwaltung_echo_settings_excerpt() {
+    einsatzverwaltung_echo_settings_checkbox(array('einsatzvw_show_links_in_excerpt', 'Auszug darf Links enthalten', EINSATZVERWALTUNG__D__SHOW_LINKS_IN_EXCERPT));
+    echo '<p class="description">Welche Links tats&auml;chlich generiert werden, h&auml;ngt von den anderen Einstellungen ab. Der Auszug im Newsfeed enth&auml;lt niemals Links.</p>';
 }
 
 
