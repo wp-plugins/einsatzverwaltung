@@ -3,7 +3,7 @@
 Plugin Name: Einsatzverwaltung
 Plugin URI: http://www.abrain.de/software/einsatzverwaltung/
 Description: Verwaltung von Feuerwehreins&auml;tzen
-Version: 0.7.0
+Version: 0.7.1
 Author: Andreas Brain
 Author URI: http://www.abrain.de
 License: GPLv2
@@ -37,10 +37,35 @@ global $evw_db_version;
 $evw_db_version = 2;
 
 global $evw_caps;
-$evw_caps = array( 'edit_einsatzberichte', 'edit_private_einsatzberichte', 'edit_published_einsatzberichte',
-                    'edit_others_einsatzberichte', 'publish_einsatzberichte', 'read_private_einsatzberichte',
-                    'delete_einsatzberichte', 'delete_private_einsatzberichte', 'delete_published_einsatzberichte',
-                    'delete_others_einsatzberichte' );
+$evw_caps = array(
+    'edit_einsatzberichte',
+    'edit_private_einsatzberichte',
+    'edit_published_einsatzberichte',
+    'edit_others_einsatzberichte',
+    'publish_einsatzberichte',
+    'read_private_einsatzberichte',
+    'delete_einsatzberichte',
+    'delete_private_einsatzberichte',
+    'delete_published_einsatzberichte',
+    'delete_others_einsatzberichte'
+);
+
+global $evw_meta_fields;
+$evw_meta_fields = array(
+    'einsatz_einsatzort' => 'Einsatzort',
+    'einsatz_einsatzleiter' => 'Einsatzleiter',
+    'einsatz_einsatzende' => 'Einsatzende',
+    'einsatz_fehlalarm' => 'Fehlalarm',
+    'einsatz_mannschaft' => 'Mannschaftsstärke'
+);
+
+global $evw_terms;
+$evw_terms = array(
+    'alarmierungsart' => 'Alarmierungsart',
+    'einsatzart' => 'Einsatzart',
+    'fahrzeug' => 'Fahrzeuge',
+    'exteinsatzmittel' => 'Externe Einsatzmittel'
+);
 
 /**
  * Erzeugt den neuen Beitragstyp Einsatzbericht und die zugehörigen Taxonomien
@@ -68,7 +93,7 @@ function einsatzverwaltung_create_post_type() {
             'slug' => 'einsaetze',
             'feeds' => true
         ),
-        'supports' => array('title', 'editor', 'thumbnail'),
+        'supports' => array('title', 'editor', 'thumbnail', 'publicize'),
         'show_in_nav_menus' => false,
         'capability_type' => array('einsatzbericht', 'einsatzberichte'),
         'map_meta_cap' => true,
@@ -1128,6 +1153,23 @@ function einsatzverwaltung_is_min_wp_version($ver) {
     }
     
     return true;
+}
+
+
+function einsatzverwaltung_print_error($message) {
+    echo '<p class="evw_error"><i class="fa fa-exclamation-circle"></i>&nbsp;' . $message . '</p>';
+}
+
+function einsatzverwaltung_print_warning($message) {
+    echo '<p class="evw_warning"><i class="fa fa-exclamation-triangle"></i>&nbsp;' . $message . '</p>';
+}
+
+function einsatzverwaltung_print_success($message) {
+    echo '<p class="evw_success"><i class="fa fa-check-circle"></i>&nbsp;' . $message . '</p>';
+}
+
+function einsatzverwaltung_print_info($message) {
+    echo '<p class="evw_info"><i class="fa fa-info-circle"></i>&nbsp;' . $message . '</p>';
 }
 
 ?>
