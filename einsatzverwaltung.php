@@ -3,7 +3,7 @@
 Plugin Name: Einsatzverwaltung
 Plugin URI: http://www.abrain.de/software/einsatzverwaltung/
 Description: Verwaltung von Feuerwehreins&auml;tzen
-Version: 0.8
+Version: 0.8.1
 Author: Andreas Brain
 Author URI: http://www.abrain.de
 License: GPLv2
@@ -27,6 +27,7 @@ define('EINSATZVERWALTUNG__D__SHOW_FAHRZEUG_ARCHIVE', false);
 define('EINSATZVERWALTUNG__D__HIDE_EMPTY_DETAILS', true);
 define('EINSATZVERWALTUNG__D__SHOW_LINKS_IN_EXCERPT', false);
 define('EINSATZVERWALTUNG__D__SHOW_EINSATZBERICHTE_MAINLOOP', false);
+define('EINSATZVERWALTUNG__D__OPEN_EXTEINSATZMITTEL_NEWWINDOW', false);
 
 require_once(EINSATZVERWALTUNG__PLUGIN_DIR . 'einsatzverwaltung-widget.php');
 require_once(EINSATZVERWALTUNG__PLUGIN_DIR . 'einsatzverwaltung-shortcodes.php');
@@ -77,6 +78,7 @@ $evw_post_fields = array(
     'post_title' => 'Einsatzstichwort'
 );
 
+
 /**
  * Erzeugt den neuen Beitragstyp Einsatzbericht und die zugehörigen Taxonomien
  */
@@ -104,7 +106,7 @@ function einsatzverwaltung_create_post_type()
             'slug' => 'einsaetze',
             'feeds' => true
         ),
-        'supports' => array('title', 'editor', 'thumbnail', 'publicize'),
+        'supports' => array('title', 'editor', 'thumbnail', 'publicize', 'author'),
         'show_in_nav_menus' => false,
         'capability_type' => array('einsatzbericht', 'einsatzberichte'),
         'map_meta_cap' => true,
@@ -619,7 +621,8 @@ function einsatzverwaltung_get_einsatzbericht_header($post, $may_contain_links =
         if ($einsatzart) {
             $art = einsatzverwaltung_get_einsatzart_string(
                 $einsatzart,
-                $make_links, get_option(
+                $make_links,
+                get_option(
                     'einsatzvw_show_einsatzart_archive',
                     EINSATZVERWALTUNG__D__SHOW_EINSATZART_ARCHIVE
                 )
@@ -681,7 +684,8 @@ function einsatzverwaltung_get_einsatzbericht_header($post, $may_contain_links =
                 if ($make_links) {
                     $url = einsatzverwaltung_get_term_field($ext->term_id, 'exteinsatzmittel', 'url');
                     if ($url !== false) {
-                        $ext_name = '<a href="'.$url.'" title="Mehr Informationen zu '.$ext->name.'">'.$ext->name.'</a>';
+                        $open_in_new_window = get_option('einsatzvw_open_ext_in_new', EINSATZVERWALTUNG__D__OPEN_EXTEINSATZMITTEL_NEWWINDOW);
+                        $ext_name = '<a href="'.$url.'" title="Mehr Informationen zu '.$ext->name.'"' . ($open_in_new_window ? ' target="_blank"' : '') . '>'.$ext->name.'</a>';
                     }
                 }
                 
@@ -854,8 +858,9 @@ add_filter('the_excerpt_rss', 'einsatzverwaltung_einsatz_excerpt_feed');
 /**
  * Gibt Einsatzberichte ggf. auch zwischen den 'normalen' Blogbeiträgen aus
  */
-function einsatzverwaltung_add_einsatzberichte_to_mainloop( $query ) {
-    if(
+function einsatzverwaltung_add_einsatzberichte_to_mainloop($query)
+{
+    if (
         get_option('einsatzvw_show_einsatzberichte_mainloop', EINSATZVERWALTUNG__D__SHOW_EINSATZBERICHTE_MAINLOOP) &&
         $query->is_main_query() &&
         is_home() &&
@@ -895,12 +900,7 @@ function einsatzverwaltung_print_einsatzliste($einsatzjahre = array(), $desc = t
         if ($query->have_posts()) {
             if (!$splitmonths) {
                 $string .= "<table class=\"einsatzliste\">";
-                $string .= "<thead><tr>";
-                $string .= "<th width=\"80\">Nummer</th>";
-                $string .= "<th width=\"80\">Datum</th>";
-                $string .= "<th width=\"50\">Zeit</th>";
-                $string .= "<th>Einsatzmeldung</th>";
-                $string .= "</tr></thead>";
+                $string .= einsatzverwaltung_get_einsatzliste_header();
                 $string .= "<tbody>";
             }
             
@@ -924,26 +924,21 @@ function einsatzverwaltung_print_einsatzliste($einsatzjahre = array(), $desc = t
                     }
                     $string .= '<h5>' . date_i18n('F', $einsatz_timestamp) . '</h5>';
                     $string .= "<table class=\"einsatzliste\">";
-                    $string .= "<thead><tr>";
-                    $string .= "<th width=\"80\">Nummer</th>";
-                    $string .= "<th width=\"80\">Datum</th>";
-                    $string .= "<th width=\"50\">Zeit</th>";
-                    $string .= "<th>Einsatzmeldung</th>";
-                    $string .= "</tr></thead>";
+                    $string .= einsatzverwaltung_get_einsatzliste_header();
                     $string .= "<tbody>";
                 }
             
                 $string .= "<tr>";
-                $string .= "<td width=\"80\">".$einsatz_nummer."</td>";
-                $string .= "<td width=\"80\">".$einsatz_datum."</td>";
-                $string .= "<td width=\"50\">".$einsatz_zeit."</td>";
+                $string .= "<td>".$einsatz_nummer."</td>";
+                $string .= "<td>".$einsatz_datum."</td>";
+                $string .= "<td>".$einsatz_zeit."</td>";
                 $string .= "<td>";
             
                 $post_title = get_the_title($query->post->ID);
                 if (!empty($post_title)) {
-                    $string .= "<a href=\"".get_permalink($query->post->ID)."\" rel=\"bookmark\">".$post_title."</a><br>";
+                    $string .= "<a href=\"".get_permalink($query->post->ID)."\" rel=\"bookmark\">".$post_title."</a>";
                 } else {
-                    $string .= "<a href=\"".get_permalink($query->post->ID)."\" rel=\"bookmark\">(kein Titel)</a><br>";
+                    $string .= "<a href=\"".get_permalink($query->post->ID)."\" rel=\"bookmark\">(kein Titel)</a>";
                 }
                 $string .= "</td>";
                 $string .= "</tr>";
@@ -963,6 +958,21 @@ function einsatzverwaltung_print_einsatzliste($einsatzjahre = array(), $desc = t
     } else {
         return $string;
     }
+}
+
+
+/**
+ * Gibt die Kopfzeile der Tabelle für die Einsatzübersicht zurück
+ */
+function einsatzverwaltung_get_einsatzliste_header()
+{
+    $string = "<thead><tr>";
+    $string .= "<th>Nummer</th>";
+    $string .= "<th>Datum</th>";
+    $string .= "<th>Zeit</th>";
+    $string .= "<th>Einsatzmeldung</th>";
+    $string .= "</tr></thead>";
+    return $string;
 }
 
 
@@ -1199,6 +1209,10 @@ function check_php_version($ver)
     }
 }
 
+
+/**
+ * Prüft, ob WordPress mindestens in Version $ver läuft
+ */
 function einsatzverwaltung_is_min_wp_version($ver)
 {
     $currentversionparts = explode(".", get_bloginfo('version'));
