@@ -4,7 +4,7 @@ Donate link: http://www.abrain.de/software/unterstuetzen/
 Tags: feuerwehr, einsatz
 Requires at least: 3.1.0
 Tested up to: 4.1
-Stable tag: 0.8
+Stable tag: 0.8.3
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,20 @@ Die Aufgaben f&uuml;r die kommenden Versionen werden auf [GitHub](https://github
 Entweder [per Mail](mailto:kontakt@abrain.de), auf [Twitter](https://twitter.com/einsatzvw) oder [App.net](https://alpha.app.net/einsatzverwaltung). Bugs und Verbesserungsvorschl&auml;ge gerne auch als [Issue auf GitHub](https://github.com/abrain/einsatzverwaltung/issues).
 
 == Changelog ==
+
+= 0.8.3 =
+* Fehlerbehebung: Einsatzdetails wurden nicht abgespeichert
+
+= 0.8.2 =
+* Verbesserung: Inhalt der Kurzfassung von Einsatzberichten ist nun f&uuml;r die Webseite und den Feed einstellbar
+* Verbesserung: Autovervollst&auml;ndigung f&uuml;r das Feld Einsatzleiter
+* Entfernt: Einstellung 'Auszug darf Links enthalten'
+
+= 0.8.1 =
+* Neu: Links zu externen Kr&auml;ften lassen sich optional in neuem Fenster &ouml;ffnen (neue Einstellung)
+* Verbesserung: Tabelle der Einsatz&uuml;bersicht enth&auml;lt keine festen Breitenangaben mehr
+* Verbesserung: Der Autor eines Einsatzberichtes kann eingestellt werden
+* Fehlerbehebung: (Unsichtbare) Fehlermeldungen im Widget wurden abgestellt
 
 = 0.8 =
 * Neu: Import aus wp-einsatz
@@ -147,6 +161,15 @@ Entweder [per Mail](mailto:kontakt@abrain.de), auf [Twitter](https://twitter.com
 
 == Upgrade Notice ==
 
+= 0.8.3 =
+Kritische Fehlerbehebung
+
+= 0.8.2 =
+Kleine Verbesserungen, siehe Changelog f&uuml;r Details
+
+= 0.8.1 =
+Kleine Verbesserungen, siehe Changelog f&uuml;r Details
+
 = 0.8 =
 Import aus wp-einsatz, Anzeige von Einsatzberichten als normale Beitr&auml;ge und Hierarchie der Einsatzart im Widget
 
@@ -203,6 +226,6 @@ Kein Upgrade, sondern die erste Version
 
 == Social Media ==
 
-Twitter: [@einsatzvw](https://twitter.com/einsatzvw)
-App.net: [@einsatzverwaltung](https://alpha.app.net/einsatzverwaltung)
-Facebook: [Einsatzverwaltung](https://www.facebook.com/einsatzverwaltung/)
+* Twitter: [@einsatzvw](https://twitter.com/einsatzvw)
+* App.net: [@einsatzverwaltung](https://alpha.app.net/einsatzverwaltung)
+* Facebook: [Einsatzverwaltung](https://www.facebook.com/einsatzverwaltung/)
