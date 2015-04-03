@@ -35,13 +35,13 @@ class WidgetLetzteEinsaetze extends WP_Widget
     public function widget($args, $instance)
     {
         $title = apply_filters('widget_title', $instance['title']);
-        $anzahl = $instance['anzahl'];
-        $zeigeDatum = $instance['zeigeDatum'];
-        $zeigeZeit = $instance['zeigeZeit'];
-        $zeigeFeedlink = (array_key_exists('zeigeFeedlink', $instance) ? $instance['zeigeFeedlink'] : null);
-        $zeigeOrt = (array_key_exists('zeigeOrt', $instance) ? $instance['zeigeOrt'] : null);
-        $zeigeArt = (array_key_exists('zeigeArt', $instance) ? $instance['zeigeArt'] : null);
-        $zeigeArtHierarchie = (array_key_exists('zeigeArtHierarchie', $instance) ? $instance['zeigeArtHierarchie'] : null);
+        $anzahl = Utilities::getArrayValueIfKey($instance, 'anzahl', 3);
+        $zeigeDatum = Utilities::getArrayValueIfKey($instance, 'zeigeDatum', false);
+        $zeigeZeit = Utilities::getArrayValueIfKey($instance, 'zeigeZeit', false);
+        $zeigeFeedlink = Utilities::getArrayValueIfKey($instance, 'zeigeFeedlink', false);
+        $zeigeOrt = Utilities::getArrayValueIfKey($instance, 'zeigeOrt', false);
+        $zeigeArt = Utilities::getArrayValueIfKey($instance, 'zeigeArt', false);
+        $zeigeArtHierarchie = Utilities::getArrayValueIfKey($instance, 'zeigeArtHierarchie', false);
 
         if (empty($title)) {
             $title = "Letzte Eins&auml;tze";
@@ -55,7 +55,7 @@ class WidgetLetzteEinsaetze extends WP_Widget
         $query = new WP_Query('&post_type=einsatz&post_status=publish&posts_per_page='.$anzahl);
         while ($query->have_posts()) {
             $nextPost = $query->next_post();
-            $letzteEinsaetze .= "<li>";
+            $letzteEinsaetze .= '<li class="einsatzbericht">';
 
             $letzteEinsaetze .= "<a href=\"".get_permalink($nextPost->ID)."\" rel=\"bookmark\" class=\"einsatzmeldung\">";
             $meldung = get_the_title($nextPost->ID);
@@ -68,24 +68,24 @@ class WidgetLetzteEinsaetze extends WP_Widget
 
             if ($zeigeDatum) {
                 $timestamp = strtotime($nextPost->post_date);
-                $datumsformat = get_option('date_format', 'd.m.Y');
+                $datumsformat = Options::getDateFormat();
                 $letzteEinsaetze .= "<br><span class=\"einsatzdatum\">".date_i18n($datumsformat, $timestamp)."</span>";
                 if ($zeigeZeit) {
-                    $zeitformat = get_option('time_format', 'H:i');
+                    $zeitformat = Options::getTimeFormat();
                     $letzteEinsaetze .= " | <span class=\"einsatzzeit\">".date_i18n($zeitformat, $timestamp)." Uhr</span>";
                 }
             }
 
             if ($zeigeArt) {
-                $einsatzart = einsatzverwaltung_get_einsatzart($nextPost->ID);
+                $einsatzart = Data::getEinsatzart($nextPost->ID);
                 if ($einsatzart !== false) {
-                    $einsatzart_str = $zeigeArtHierarchie ? einsatzverwaltung_get_einsatzart_string($einsatzart, false, false) : $einsatzart->name;
+                    $einsatzart_str = Frontend::getEinsatzartString($einsatzart, false, false, $zeigeArtHierarchie);
                     $letzteEinsaetze .= sprintf('<br><span class="einsatzart">%s</span>', $einsatzart_str);
                 }
             }
 
             if ($zeigeOrt) {
-                $einsatzort = get_post_meta($nextPost->ID, 'einsatz_einsatzort', true);
+                $einsatzort = Data::getEinsatzort($nextPost->ID);
                 if ($einsatzort != "") {
                     $letzteEinsaetze .= "<br><span class=\"einsatzort\">Ort:&nbsp;".$einsatzort."</span>";
                 }
@@ -96,8 +96,16 @@ class WidgetLetzteEinsaetze extends WP_Widget
 
         echo $args['before_widget'];
         echo $args['before_title'] . $title . $args['after_title'];
-        echo (empty($letzteEinsaetze) ? "Keine Eins&auml;tze" : "<ul>".$letzteEinsaetze."</ul>");
-        echo ($zeigeFeedlink ? '<p><span class="fa fa-rss"></span>&nbsp;<a href="'.get_post_type_archive_feed_link('einsatz').'">Einsatzberichte (Feed)</a></p>' : '');
+        if (empty($letzteEinsaetze)) {
+            echo '<p>Keine Eins&auml;tze</p>';
+        } else {
+            echo '<ul class="einsatzberichte">' . $letzteEinsaetze . '</ul>';
+        }
+        if ($zeigeFeedlink) {
+            echo '<p class="einsatzfeed"><span class="fa fa-rss"></span>&nbsp;<a href="';
+            echo get_post_type_archive_feed_link('einsatz');
+            echo '">Einsatzberichte (Feed)</a></p>';
+        }
         echo $args['after_widget'];
     }
 
@@ -123,12 +131,12 @@ class WidgetLetzteEinsaetze extends WP_Widget
             $instance['anzahl'] = $new_instance['anzahl'];
         }
 
-        $instance['zeigeDatum'] = $new_instance['zeigeDatum'];
-        $instance['zeigeZeit'] = $new_instance['zeigeZeit'];
-        $instance['zeigeOrt'] = $new_instance['zeigeOrt'];
-        $instance['zeigeArt'] = $new_instance['zeigeArt'];
-        $instance['zeigeArtHierarchie'] = $new_instance['zeigeArtHierarchie'];
-        $instance['zeigeFeedlink'] = $new_instance['zeigeFeedlink'];
+        $instance['zeigeDatum'] = Utilities::getArrayValueIfKey($new_instance, 'zeigeDatum', false);
+        $instance['zeigeZeit'] = Utilities::getArrayValueIfKey($new_instance, 'zeigeZeit', false);
+        $instance['zeigeOrt'] = Utilities::getArrayValueIfKey($new_instance, 'zeigeOrt', false);
+        $instance['zeigeArt'] = Utilities::getArrayValueIfKey($new_instance, 'zeigeArt', false);
+        $instance['zeigeArtHierarchie'] = Utilities::getArrayValueIfKey($new_instance, 'zeigeArtHierarchie', false);
+        $instance['zeigeFeedlink'] = Utilities::getArrayValueIfKey($new_instance, 'zeigeFeedlink', false);
 
         return $instance;
     }
@@ -143,24 +151,14 @@ class WidgetLetzteEinsaetze extends WP_Widget
      */
     public function form($instance)
     {
-        if (isset($instance[ 'title' ])) {
-            $title = $instance[ 'title' ];
-        } else {
-            $title = __('Letzte Eins&auml;tze', 'einsatzverwaltung');
-        }
-
-        if (isset($instance[ 'anzahl' ])) {
-            $anzahl = $instance[ 'anzahl' ];
-        } else {
-            $anzahl = 3;
-        }
-
-        $zeigeDatum = (array_key_exists('zeigeDatum', $instance) ? $instance['zeigeDatum'] : null);
-        $zeigeZeit = (array_key_exists('zeigeZeit', $instance) ? $instance['zeigeZeit'] : null);
-        $zeigeFeedlink = (array_key_exists('zeigeFeedlink', $instance) ? $instance['zeigeFeedlink'] : null);
-        $zeigeOrt = (array_key_exists('zeigeOrt', $instance) ? $instance['zeigeOrt'] : null);
-        $zeigeArt = (array_key_exists('zeigeArt', $instance) ? $instance['zeigeArt'] : null);
-        $zeigeArtHierarchie = (array_key_exists('zeigeArtHierarchie', $instance) ? $instance['zeigeArtHierarchie'] : null);
+        $title = Utilities::getArrayValueIfKey($instance, 'title', __('Letzte Eins&auml;tze', 'einsatzverwaltung'));
+        $anzahl = Utilities::getArrayValueIfKey($instance, 'anzahl', 3);
+        $zeigeDatum = Utilities::getArrayValueIfKey($instance, 'zeigeDatum', false);
+        $zeigeZeit = Utilities::getArrayValueIfKey($instance, 'zeigeZeit', false);
+        $zeigeFeedlink = Utilities::getArrayValueIfKey($instance, 'zeigeFeedlink', false);
+        $zeigeOrt = Utilities::getArrayValueIfKey($instance, 'zeigeOrt', false);
+        $zeigeArt = Utilities::getArrayValueIfKey($instance, 'zeigeArt', false);
+        $zeigeArtHierarchie = Utilities::getArrayValueIfKey($instance, 'zeigeArtHierarchie', false);
 
         echo '<p><label for="'.$this->get_field_id('title').'">' . __('Titel:', 'einsatzverwaltung') . '</label>';
         echo '<input class="widefat" id="' . $this->get_field_id('title') . '" name="' . $this->get_field_name('title') . '" type="text" value="' . esc_attr($title).'" /></p>';
