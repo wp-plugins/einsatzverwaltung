@@ -11,15 +11,54 @@ class Utilities
     /**
      * Hilfsfunktion für Checkboxen, übersetzt 1/0 Logik in Haken an/aus
      *
-     * @param string $value Der zu überprüfende Wert
+     * @param mixed $value Der zu überprüfende Wert
      *
      * @return bool Der entsprechende boolsche Wert für $value
      */
     public static function checked($value)
     {
-        return ($value == 1 ? 'checked="checked" ' : '');
+        return ($value === true || $value == 1 ? 'checked="checked" ' : '');
     }
 
+    /**
+     * @param array $array
+     * @param string $key
+     * @param mixed $default
+     *
+     * @return mixed
+     */
+    public static function getArrayValueIfKey($array, $key, $default)
+    {
+        return (array_key_exists($key, $array) ? $array[$key] : $default);
+    }
+
+    /**
+     * Gibt eine lesbare Angabe einer Dauer zurück (z.B. 2 Stunden 12 Minuten)
+     *
+     * @param int $minutes Dauer in Minuten
+     * @param bool $abbreviated
+     *
+     * @return string
+     */
+    public static function getDurationString($minutes, $abbreviated = false)
+    {
+        if (!is_numeric($minutes) || $minutes < 0) {
+            return '';
+        }
+
+        if ($minutes < 60) {
+            $dauerstring = $minutes . ' ' . ($abbreviated ? 'min' : _n('Minute', 'Minuten', $minutes));
+        } else {
+            $hours = intval($minutes / 60);
+            $remainingMinutes = $minutes % 60;
+            $dauerstring = $hours . ' ' . ($abbreviated ? 'h' : _n('Stunde', 'Stunden', $hours));
+            if ($remainingMinutes > 0) {
+                $dauerstring .= ' ' . $remainingMinutes . ' ' . ($abbreviated ? 'min' : _n('Minute', 'Minuten', $remainingMinutes));
+            }
+        }
+
+        return $dauerstring;
+    }
 
     /**
      * Prüft, ob WordPress mindestens in Version $ver läuft
@@ -137,7 +176,7 @@ class Utilities
         if (is_numeric($val) && $val > 0) {
             return $val;
         } else {
-            return EINSATZVERWALTUNG__EINSATZNR_STELLEN;
+            return Options::getDefaultEinsatznummerStellen();
         }
     }
 
@@ -151,11 +190,10 @@ class Utilities
      */
     public static function sanitizeExcerptType($input)
     {
-        // TODO gegen künftige Liste in Core prüfen
-        if ($input === 'details' || $input === 'text' || $input === 'none') {
+        if (array_key_exists($input, Core::getExcerptTypes())) {
             return $input;
         } else {
-            return EINSATZVERWALTUNG__D__EXCERPT_TYPE;
+            return Options::getDefaultExcerptType();
         }
     }
 
@@ -176,5 +214,39 @@ class Utilities
         } else {
             return $defaultvalue;
         }
+    }
+
+
+    /**
+     * Stellt sicher, dass nur gültige Spalten-Ids gespeichert werden.
+     *
+     * @param string $input Kommaseparierte Spalten-Ids
+     *
+     * @return string Der Eingabestring ohne ungültige Spalten-Ids, bei Problemen werden die Standardspalten
+     * zurückgegeben
+     */
+    public static function sanitizeColumns($input)
+    {
+        if (empty($input)) {
+            return Options::getDefaultColumns();
+        }
+
+        $columns = Core::getListColumns();
+        $columnIds = array_keys($columns);
+
+        $inputArray = explode(',', $input);
+        $validColumnIds = array();
+        foreach ($inputArray as $colId) {
+            $colId = trim($colId);
+            if (in_array($colId, $columnIds)) {
+                $validColumnIds[] = $colId;
+            }
+        }
+
+        if (empty($validColumnIds)) {
+            return Options::getDefaultColumns();
+        }
+
+        return implode(',', $validColumnIds);
     }
 }
