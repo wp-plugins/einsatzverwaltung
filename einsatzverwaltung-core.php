@@ -1,12 +1,36 @@
 <?php
-use abrain\Einsatzverwaltung\Utilities;
+namespace abrain\Einsatzverwaltung;
+
+require_once dirname(__FILE__) . '/einsatzverwaltung-admin.php';
+require_once dirname(__FILE__) . '/einsatzverwaltung-data.php';
+require_once dirname(__FILE__) . '/einsatzverwaltung-utilities.php';
+require_once dirname(__FILE__) . '/einsatzverwaltung-frontend.php';
+require_once dirname(__FILE__) . '/einsatzverwaltung-widget.php';
+require_once dirname(__FILE__) . '/einsatzverwaltung-options.php';
+require_once dirname(__FILE__) . '/einsatzverwaltung-shortcodes.php';
+require_once dirname(__FILE__) . '/einsatzverwaltung-settings.php';
+require_once dirname(__FILE__) . '/einsatzverwaltung-tools.php';
+require_once dirname(__FILE__) . '/einsatzverwaltung-tools-wpe.php';
+require_once dirname(__FILE__) . '/einsatzverwaltung-taxonomies.php';
+
+use WP_Query;
 
 /**
- * Erzeugt den neuen Beitragstyp Einsatzbericht und die zugehörigen Taxonomien
+ * Grundlegende Funktionen
  */
-function einsatzverwaltung_create_post_type()
+class Core
 {
-    $args_einsatz = array(
+    const VERSION = '0.9.1';
+    const DB_VERSION = 4;
+
+    public static $pluginFile;
+    public static $pluginBasename;
+    public static $pluginDir;
+    public static $pluginUrl;
+    public static $scriptUrl;
+    public static $styleUrl;
+
+    private static $args_einsatz = array(
         'labels' => array(
             'name' => 'Einsatzberichte',
             'singular_name' => 'Einsatzbericht',
@@ -34,12 +58,8 @@ function einsatzverwaltung_create_post_type()
         'map_meta_cap' => true,
         'menu_position' => 5
     );
-    if (Utilities::isMinWPVersion("3.9")) {
-        $args_einsatz['menu_icon'] = 'dashicons-media-document';
-    }
-    register_post_type('einsatz', $args_einsatz);
 
-    $args_einsatzart = array(
+    private static $args_einsatzart = array(
         'label' => 'Einsatzarten',
         'labels' => array(
             'name' => 'Einsatzarten',
@@ -58,7 +78,7 @@ function einsatzverwaltung_create_post_type()
             'choose_from_most_used' => 'Aus h&auml;ufigen Einsatzarten w&auml;hlen'),
         'public' => true,
         'show_in_nav_menus' => false,
-        'meta_box_cb' => 'einsatzverwaltung_display_einsatzart_metabox',
+        'meta_box_cb' => 'abrain\Einsatzverwaltung\Admin::displayMetaBoxEinsatzart',
         'capabilities' => array (
             'manage_terms' => 'edit_einsatzberichte',
             'edit_terms' => 'edit_einsatzberichte',
@@ -67,9 +87,8 @@ function einsatzverwaltung_create_post_type()
         ),
         'hierarchical' => true
     );
-    register_taxonomy('einsatzart', 'einsatz', $args_einsatzart);
 
-    $args_fahrzeug = array(
+    private static $args_fahrzeug = array(
         'label' => 'Fahrzeuge',
         'labels' => array(
             'name' => 'Fahrzeuge',
@@ -95,9 +114,8 @@ function einsatzverwaltung_create_post_type()
             'assign_terms' => 'edit_einsatzberichte'
         )
     );
-    register_taxonomy('fahrzeug', 'einsatz', $args_fahrzeug);
 
-    $argsExteinsatzmittel = array(
+    private static $argsExteinsatzmittel = array(
         'label' => 'Externe Einsatzmittel',
         'labels' => array(
             'name' => 'Externe Einsatzmittel',
@@ -126,9 +144,8 @@ function einsatzverwaltung_create_post_type()
             'slug' => 'externe-einsatzmittel'
         )
     );
-    register_taxonomy('exteinsatzmittel', 'einsatz', $argsExteinsatzmittel);
 
-    $args_alarmierungsart = array(
+    private static $args_alarmierungsart = array(
         'label' => 'Alarmierungsart',
         'labels' => array(
             'name' => 'Alarmierungsarten',
@@ -154,273 +171,296 @@ function einsatzverwaltung_create_post_type()
             'assign_terms' => 'edit_einsatzberichte'
         )
     );
-    register_taxonomy('alarmierungsart', 'einsatz', $args_alarmierungsart);
 
-    // more rewrite rules
-    add_rewrite_rule($args_einsatz['rewrite']['slug'] . '/(\d{4})/page/(\d{1,})/?$', 'index.php?post_type=einsatz&year=$matches[1]&paged=$matches[2]', 'top');
-    add_rewrite_rule($args_einsatz['rewrite']['slug'] . '/(\d{4})/?$', 'index.php?post_type=einsatz&year=$matches[1]', 'top');
-}
-add_action('init', 'einsatzverwaltung_create_post_type');
+    private $data;
 
+    /**
+     * Constructor
+     */
+    public function __construct()
+    {
+        self::$pluginFile = einsatzverwaltung_plugin_file();
+        self::$pluginBasename = plugin_basename(self::$pluginFile);
+        self::$pluginDir = plugin_dir_path(self::$pluginFile);
+        self::$pluginUrl = plugin_dir_url(self::$pluginFile);
+        self::$scriptUrl = self::$pluginUrl . 'js/';
+        self::$styleUrl = self::$pluginUrl . 'css/';
 
-/**
- * @param $kalenderjahr
- *
- * @return array
- */
-function einsatzverwaltung_get_einsatzberichte($kalenderjahr)
-{
-    if (empty($kalenderjahr) || strlen($kalenderjahr)!=4 || !is_numeric($kalenderjahr)) {
-        $kalenderjahr = '';
-    }
-
-    return get_posts(array(
-        'nopaging' => true,
-        'orderby' => 'post_date',
-        'order' => 'ASC',
-        'post_type' => 'einsatz',
-        'post_status' => 'publish',
-        'year' => $kalenderjahr
-    ));
-}
-
-
-/**
- * Berechnet die nächste freie Einsatznummer für das gegebene Jahr
- *
- * @param string $jahr
- * @param bool $minuseins Wird beim Speichern der zusätzlichen Einsatzdaten in einsatzverwaltung_save_postdata benötigt,
- * da der Einsatzbericht bereits gespeichert wurde, aber bei der Zählung für die Einsatznummer ausgelassen werden soll
- *
- * @return string Nächste freie Einsatznummer im angegebenen Jahr
- */
-function einsatzverwaltung_get_next_einsatznummer($jahr, $minuseins = false)
-{
-    if (empty($jahr) || !is_numeric($jahr)) {
-        $jahr = date('Y');
-    }
-    $query = new WP_Query('year=' . $jahr .'&post_type=einsatz&post_status=publish&nopaging=true');
-    return einsatzverwaltung_format_einsatznummer($jahr, $query->found_posts + ($minuseins ? 0 : 1));
-}
-
-
-/**
- * Formatiert die Einsatznummer
- *
- * @param string $jahr Jahreszahl
- * @param int $nummer Laufende Nummer des Einsatzes im angegebenen Jahr
- *
- * @return string Formatierte Einsatznummer
- */
-function einsatzverwaltung_format_einsatznummer($jahr, $nummer)
-{
-    $stellen = get_option('einsatzvw_einsatznummer_stellen', EINSATZVERWALTUNG__EINSATZNR_STELLEN);
-    $lfdvorne = get_option('einsatzvw_einsatznummer_lfdvorne', false);
-    if ($lfdvorne) {
-        return str_pad($nummer, $stellen, "0", STR_PAD_LEFT).$jahr;
-    } else {
-        return $jahr.str_pad($nummer, $stellen, "0", STR_PAD_LEFT);
-    }
-}
-
-
-/**
- * Zusätzliche Metadaten des Einsatzberichts speichern
- *
- * @param int $post_id ID des Posts
- */
-function einsatzverwaltung_save_postdata($post_id)
-{
-
-    // verify if this is an auto save routine.
-    // If it is our form has not been submitted, so we dont want to do anything
-    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE) {
-        return;
-    }
-
-    if (array_key_exists('post_type', $_POST) && 'einsatz' == $_POST['post_type']) {
-        // Prüfen, ob Aufruf über das Formular erfolgt ist
-        if (
-            !isset($_POST['einsatzverwaltung_nonce']) ||
-            !wp_verify_nonce($_POST['einsatzverwaltung_nonce'], 'save_einsatz_details')
-        ) {
-            return;
+        if (Utilities::isMinWPVersion("3.9")) {
+            self::$args_einsatz['menu_icon'] = 'dashicons-media-document';
         }
 
-        // Schreibrechte prüfen
-        if (!current_user_can('edit_einsatzbericht', $post_id)) {
-            return;
-        }
+        new Admin();
+        $this->data = new Data();
+        $frontend = new Frontend();
+        new Settings();
+        new Shortcodes($frontend);
+        new Taxonomies();
+        new ToolEinsatznummernReparieren($this->data);
+        new ToolImportWpEinsatz();
 
-        $update_args = array();
+        $this->addHooks();
+    }
 
-        // Alarmzeit validieren
-        $input_alarmzeit = sanitize_text_field($_POST['einsatzverwaltung_alarmzeit']);
-        if (!empty($input_alarmzeit)) {
-            $alarmzeit = date_create($input_alarmzeit);
+    private function addHooks()
+    {
+        add_action('init', array($this, 'onInit'));
+        add_action('plugins_loaded', array($this, 'onPluginsLoaded'));
+        add_action('save_post', array($this->data, 'savePostdata'));
+        register_activation_hook(self::$pluginFile, array($this, 'onActivation'));
+    }
+
+    /**
+     * Wird beim Aktivieren des Plugins aufgerufen
+     */
+    public function onActivation()
+    {
+        update_option('einsatzvw_version', self::VERSION);
+        add_option('einsatzvw_db_version', self::DB_VERSION);
+
+        $this->maybeUpdate();
+
+        // Posttypen registrieren
+        $this->registerTypes();
+        $this->addRewriteRules();
+
+        // Permalinks aktualisieren
+        flush_rewrite_rules();
+
+        // Rechte für Administratoren setzen
+        $role_obj = get_role('administrator');
+        foreach (self::getCapabilities() as $cap) {
+            $role_obj->add_cap($cap, true);
         }
-        if (empty($alarmzeit)) {
-            $alarmzeit = date_create(
-                sprintf(
-                    '%s-%s-%s %s:%s:%s',
-                    $_POST['aa'],
-                    $_POST['mm'],
-                    $_POST['jj'],
-                    $_POST['hh'],
-                    $_POST['mn'],
-                    $_POST['ss']
-                )
-            );
+    }
+
+    /**
+     * Plugin initialisieren
+     */
+    public function onInit()
+    {
+        $this->registerTypes();
+        $this->addRewriteRules();
+    }
+
+    public function onPluginsLoaded()
+    {
+        $this->maybeUpdate();
+    }
+
+    /**
+     * Erzeugt den neuen Beitragstyp Einsatzbericht und die zugehörigen Taxonomien
+     */
+    private function registerTypes()
+    {
+        register_post_type('einsatz', self::$args_einsatz);
+        register_taxonomy('einsatzart', 'einsatz', self::$args_einsatzart);
+        register_taxonomy('fahrzeug', 'einsatz', self::$args_fahrzeug);
+        register_taxonomy('exteinsatzmittel', 'einsatz', self::$argsExteinsatzmittel);
+        register_taxonomy('alarmierungsart', 'einsatz', self::$args_alarmierungsart);
+    }
+
+    private function addRewriteRules()
+    {
+        $base = self::$args_einsatz['rewrite']['slug'];
+        add_rewrite_rule(
+            $base . '/(\d{4})/page/(\d{1,})/?$',
+            'index.php?post_type=einsatz&year=$matches[1]&paged=$matches[2]',
+            'top'
+        );
+        add_rewrite_rule($base . '/(\d{4})/?$', 'index.php?post_type=einsatz&year=$matches[1]', 'top');
+    }
+
+    /**
+     * Berechnet die nächste freie Einsatznummer für das gegebene Jahr
+     *
+     * @param string $jahr
+     * @param bool $minuseins Wird beim Speichern der zusätzlichen Einsatzdaten in einsatzverwaltung_save_postdata
+     * benötigt, da der Einsatzbericht bereits gespeichert wurde, aber bei der Zählung für die Einsatznummer
+     * ausgelassen werden soll
+     *
+     * @return string Nächste freie Einsatznummer im angegebenen Jahr
+     */
+    public static function getNextEinsatznummer($jahr, $minuseins = false)
+    {
+        if (empty($jahr) || !is_numeric($jahr)) {
+            $jahr = date('Y');
+        }
+        $query = new WP_Query('year=' . $jahr .'&post_type=einsatz&post_status=publish&nopaging=true');
+        return self::formatEinsatznummer($jahr, $query->found_posts + ($minuseins ? 0 : 1));
+    }
+
+    /**
+     * Formatiert die Einsatznummer
+     *
+     * @param string $jahr Jahreszahl
+     * @param int $nummer Laufende Nummer des Einsatzes im angegebenen Jahr
+     *
+     * @return string Formatierte Einsatznummer
+     */
+    public static function formatEinsatznummer($jahr, $nummer)
+    {
+        $stellen = Options::getEinsatznummerStellen();
+        $lfdvorne = Options::isEinsatznummerLfdVorne();
+        if ($lfdvorne) {
+            return str_pad($nummer, $stellen, "0", STR_PAD_LEFT).$jahr;
         } else {
-            $update_args['post_date'] = date_format($alarmzeit, 'Y-m-d H:i:s');
-            $update_args['post_date_gmt'] = get_gmt_from_date($update_args['post_date']);
-        }
-
-        // Einsatznummer validieren
-        $einsatzjahr = date_format($alarmzeit, 'Y');
-        $einsatzNrFallback = einsatzverwaltung_get_next_einsatznummer($einsatzjahr, $einsatzjahr == date('Y'));
-        $einsatznummer = sanitize_title($_POST['einsatzverwaltung_nummer'], $einsatzNrFallback, 'save');
-        if (!empty($einsatznummer)) {
-            $update_args['post_name'] = $einsatznummer; // Slug setzen
-        }
-
-        // Einsatzende validieren
-        $input_einsatzende = sanitize_text_field($_POST['einsatzverwaltung_einsatzende']);
-        if (!empty($input_einsatzende)) {
-            $einsatzende = date_create($input_einsatzende);
-        }
-        if (empty($einsatzende)) {
-            $einsatzende = "";
-        }
-
-        // Einsatzort validieren
-        $einsatzort = sanitize_text_field($_POST['einsatzverwaltung_einsatzort']);
-
-        // Einsatzleiter validieren
-        $einsatzleiter = sanitize_text_field($_POST['einsatzverwaltung_einsatzleiter']);
-
-        // Mannschaftsstärke validieren
-        $mannschaftsstaerke = Utilities::sanitizePositiveNumber($_POST['einsatzverwaltung_mannschaft'], 0);
-
-        // Fehlalarm validieren
-        $fehlalarm = Utilities::sanitizeCheckbox(array($_POST, 'einsatzverwaltung_fehlalarm'));
-
-        // Metadaten schreiben
-        update_post_meta($post_id, 'einsatz_alarmzeit', date_format($alarmzeit, 'Y-m-d H:i'));
-        update_post_meta($post_id, 'einsatz_einsatzende', ($einsatzende == "" ? "" : date_format($einsatzende, 'Y-m-d H:i')));
-        update_post_meta($post_id, 'einsatz_einsatzort', $einsatzort);
-        update_post_meta($post_id, 'einsatz_einsatzleiter', $einsatzleiter);
-        update_post_meta($post_id, 'einsatz_mannschaft', $mannschaftsstaerke);
-        update_post_meta($post_id, 'einsatz_fehlalarm', $fehlalarm);
-
-        if (!empty($update_args)) {
-            if (! wp_is_post_revision($post_id)) {
-                $update_args['ID'] = $post_id;
-
-                // unhook this function so it doesn't loop infinitely
-                remove_action('save_post', 'einsatzverwaltung_save_postdata');
-
-                // update the post, which calls save_post again
-                wp_update_post($update_args);
-
-                // re-hook this function
-                add_action('save_post', 'einsatzverwaltung_save_postdata');
-            }
+            return $jahr.str_pad($nummer, $stellen, "0", STR_PAD_LEFT);
         }
     }
-}
-add_action('save_post', 'einsatzverwaltung_save_postdata');
 
-
-/**
- * Bestimmt die Einsatzart eines bestimmten Einsatzes. Ist nötig, weil die Taxonomie
- * 'einsatzart' mehrere Werte speichern kann, aber nur einer genutzt werden soll
- *
- * @param int $postId
- * @return object|bool
- */
-function einsatzverwaltung_get_einsatzart($postId)
-{
-    $einsatzarten = get_the_terms($postId, 'einsatzart');
-    if ($einsatzarten && !is_wp_error($einsatzarten) && !empty($einsatzarten)) {
-        $keys = array_keys($einsatzarten);
-        return $einsatzarten[$keys[0]];
-    } else {
-        return false;
+    /**
+     * Gibt ein Array aller Felder und deren Namen zurück,
+     * Hauptverwendungszweck ist das Mapping beim Import
+     */
+    public static function getFields()
+    {
+        return array_merge(self::getMetaFields(), self::getTerms(), self::getPostFields());
     }
-}
 
+    /**
+     * Gibt die möglichen Spalten für die Einsatzübersicht zurück
+     *
+     * @return array
+     */
+    public static function getListColumns()
+    {
+        return array(
+            'number' => array(
+                'name' => 'Nummer'
+            ),
+            'date' => array(
+                'name' => 'Datum'
+            ),
+            'time' => array(
+                'name' => 'Zeit'
+            ),
+            'title' => array(
+                'name' => 'Einsatzmeldung'
+            ),
+            'incidentCommander' => array(
+                'name' => 'Einsatzleiter'
+            ),
+            'location' => array(
+                'name' => 'Einsatzort'
+            ),
+            'workforce' => array(
+                'name' => 'Mannschaftsst&auml;rke'
+            ),
+            'duration' => array(
+                'name' => 'Dauer'
+            ),
+            'vehicles' => array(
+                'name' => 'Fahrzeuge'
+            ),
+            'alarmType' => array(
+                'name' => 'Alarmierungsart'
+            ),
+            'additionalForces' => array(
+                'name' => 'Weitere Kräfte'
+            ),
+            'incidentType' => array(
+                'name' => 'Einsatzart'
+            ),
+            'seqNum' => array(
+                'name' => 'Lfd.',
+                'longName' => 'Laufende Nummer'
+            )
+        );
+    }
 
-/**
- * Gibt die Einsatzart als String zurück, wenn vorhanden auch mit den übergeordneten Einsatzarten
- *
- * @param object $einsatzart
- * @param bool $make_links
- * @param bool $show_archive_links
- *
- * @return string
- */
-function einsatzverwaltung_get_einsatzart_string($einsatzart, $make_links, $show_archive_links)
-{
-    $str = '';
-    do {
-        if (!empty($str)) {
-            $str = ' > '.$str;
-            $einsatzart = get_term($einsatzart->parent, 'einsatzart');
+    /**
+     * Gibt die möglichen Kurzfassungstypen zurück
+     *
+     * @return array
+     */
+    public static function getExcerptTypes()
+    {
+        return array(
+            'none' => 'Leer',
+            'details' => 'Einsatzdetails',
+            'text' => 'Berichtstext'
+        );
+    }
+
+    /**
+     * Gibt die möglichen Berechtigungen für Einsatzberichte zurück
+     *
+     * @return array
+     */
+    public static function getCapabilities()
+    {
+        return array(
+            'edit_einsatzberichte',
+            'edit_private_einsatzberichte',
+            'edit_published_einsatzberichte',
+            'edit_others_einsatzberichte',
+            'publish_einsatzberichte',
+            'read_private_einsatzberichte',
+            'delete_einsatzberichte',
+            'delete_private_einsatzberichte',
+            'delete_published_einsatzberichte',
+            'delete_others_einsatzberichte'
+        );
+    }
+
+    /**
+     * Gibt die slugs und Namen der Metafelder zurück
+     *
+     * @return array
+     */
+    public static function getMetaFields()
+    {
+        return array(
+            'einsatz_einsatzort' => 'Einsatzort',
+            'einsatz_einsatzleiter' => 'Einsatzleiter',
+            'einsatz_einsatzende' => 'Einsatzende',
+            'einsatz_fehlalarm' => 'Fehlalarm',
+            'einsatz_mannschaft' => 'Mannschaftsstärke'
+        );
+    }
+
+    /**
+     * Gibt die slugs und Namen der Taxonomien zurück
+     *
+     * @return array
+     */
+    public static function getTerms()
+    {
+        return array(
+            'alarmierungsart' => 'Alarmierungsart',
+            'einsatzart' => 'Einsatzart',
+            'fahrzeug' => 'Fahrzeuge',
+            'exteinsatzmittel' => 'Externe Einsatzmittel'
+        );
+    }
+
+    /**
+     * Gibt slugs und Namen der Direkt dem Post zugeordneten Felder zurück
+     *
+     * @return array
+     */
+    public static function getPostFields()
+    {
+        return array(
+            'post_date' => 'Alarmzeit',
+            'post_name' => 'Einsatznummer',
+            'post_content' => 'Berichtstext',
+            'post_title' => 'Einsatzstichwort'
+        );
+    }
+
+    private function maybeUpdate()
+    {
+        $currentDbVersion = get_option('einsatzvw_db_version', self::DB_VERSION);
+        if ($currentDbVersion >= self::DB_VERSION) {
+            return;
         }
 
-        if ($make_links && $show_archive_links) {
-            $str = '&nbsp;<a href="' . get_term_link($einsatzart) . '" class="fa fa-filter" style="text-decoration:none;" title="Alle Eins&auml;tze vom Typ '. $einsatzart->name . ' anzeigen"></a>' . $str;
-        }
-        $str = $einsatzart->name . $str;
-    } while ($einsatzart->parent != 0);
-    return $str;
-}
-
-
-/**
- * Gibt die Namen aller bisher verwendeten Einsatzleiter zurück
- *
- * @return array
- */
-function einsatzverwaltung_get_einsatzleiter()
-{
-    /** @var wpdb $wpdb */
-    global $wpdb;
-
-    $names = array();
-    $query = "SELECT meta_value FROM $wpdb->postmeta WHERE meta_key = 'einsatz_einsatzleiter' AND meta_value <> ''";
-    $results = $wpdb->get_results($query, OBJECT);
-
-    foreach ($results as $result) {
-        $names[] = $result->meta_value;
+        require_once( __DIR__ . '/einsatzverwaltung-update.php' );
+        $update = new Update();
+        $update->doUpdate($currentDbVersion, self::DB_VERSION);
     }
-    return $names;
 }
 
-
-/**
- * Gibt ein Array mit Jahreszahlen zurück, in denen Einsätze vorliegen
- */
-function einsatzverwaltung_get_jahremiteinsatz()
-{
-    $jahre = array();
-    $query = new WP_Query('&post_type=einsatz&post_status=publish&nopaging=true');
-    while ($query->have_posts()) {
-        $nextPost = $query->next_post();
-        $timestamp = strtotime($nextPost->post_date);
-        $jahre[date("Y", $timestamp)] = 1;
-    }
-    return array_keys($jahre);
-}
-
-
-/**
- * Gibt ein Array aller Felder und deren Namen zurück,
- * Hauptverwendungszweck ist das Mapping beim Import
- */
-function einsatzverwaltung_get_fields()
-{
-    global $evw_meta_fields, $evw_terms, $evw_post_fields;
-    return array_merge($evw_meta_fields, $evw_terms, $evw_post_fields);
-}
+new Core();

@@ -1,14 +1,14 @@
 === Einsatzverwaltung ===
 Contributors: abrain
-Donate link: http://www.abrain.de/software/unterstuetzen/
-Tags: feuerwehr, einsatz
-Requires at least: 3.1.0
-Tested up to: 4.1
-Stable tag: 0.8.4
+Donate link: https://www.abrain.de/software/unterstuetzen/
+Tags: Feuerwehr, Einsatz, Rettung, Rettungsdienst, THW, HiOrg, Wasserwacht, Bergrettung
+Requires at least: 3.4.0
+Tested up to: 4.2
+Stable tag: 0.9.1
 License: GPLv2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Plugin zur Verwaltung von Feuerwehreins&auml;tzen
+Verwaltung und Darstellung von Einsatzberichten der Feuerwehr und anderer Hilfsorganisationen
 
 == Description ==
 
@@ -20,15 +20,17 @@ Funktionen im &Uuml;berblick:
 
 * Einsatzberichte als vollwertige Beitr&auml;ge ver&ouml;ffentlichen
 * Information &uuml;ber Einsatzart, eingesetzte Fahrzeuge, Dauer und vieles mehr
-* Shortcode zum Einbinden einer Liste von Eins&auml;tzen eines Jahres
+* Shortcode zum Einbinden von Einsatzlisten
 * Widget zeigt die aktuellsten X Eins&auml;tze
 * Import aus wp-einsatz
+* Newsfeed f&uuml;r Einsatzberichte
+* Pflege der Einsatzberichte kann auf bestimmte Rollen beschr&auml;nkt werden
 
 Uses Font Awesome by Dave Gandy - http://fontawesome.io
 
 == Installation ==
 
-Das Plugin kann entweder aus WordPress heraus aus dem [Pluginverzeichnis](http://wordpress.org/plugins/einsatzverwaltung/) installiert werden oder aber durch Hochladen der Plugindateien in das Verzeichnis `/wp-content/plugins/`.
+Das Plugin kann entweder aus WordPress heraus aus dem [Pluginverzeichnis](https://wordpress.org/plugins/einsatzverwaltung/) installiert werden oder aber durch Hochladen der Plugindateien in das Verzeichnis `/wp-content/plugins/`.
 
 In beiden F&auml;llen muss das Plugin erst aktiviert werden, bevor es benutzt werden kann.
 
@@ -38,17 +40,40 @@ __Es wird PHP 5.3.0 oder neuer ben&ouml;tigt__
 
 = Wo finde ich die Anleitung bzw. Dokumentation? =
 
-Die Dokumentation gibt es [hier](http://www.abrain.de/software/einsatzverwaltung/anleitung/), wenn etwas fehlt oder missverst&auml;ndlich erkl&auml;rt ist, bitte melden.
+Die Dokumentation gibt es [hier](https://www.abrain.de/software/einsatzverwaltung/anleitung/), wenn etwas fehlt oder missverst&auml;ndlich erkl&auml;rt ist, bitte melden.
 
 = Ich f&auml;nde es gut, wenn Funktionalit&auml;t X hinzugef&uuml;gt / verbessert werden k&ouml;nnte =
 
-Die Aufgaben f&uuml;r die kommenden Versionen werden auf [GitHub](https://github.com/abrain/einsatzverwaltung/issues) verwaltet, Feedback ist jederzeit willkommen.
+Entweder einen Issue auf [GitHub](https://github.com/abrain/einsatzverwaltung/issues) er&ouml;ffnen (sofern es nicht schon einen solchen gibt) oder einfach eine [Mail](mailto:kontakt@abrain.de) schreiben.
 
 = Wie kann ich den Entwickler erreichen? =
 
-Entweder [per Mail](mailto:kontakt@abrain.de), auf [Twitter](https://twitter.com/einsatzvw) oder [App.net](https://alpha.app.net/einsatzverwaltung). Bugs und Verbesserungsvorschl&auml;ge gerne auch als [Issue auf GitHub](https://github.com/abrain/einsatzverwaltung/issues).
+Entweder [per Mail](mailto:kontakt@abrain.de), per PN auf [Facebook](https://www.facebook.com/einsatzverwaltung), auf [Twitter](https://twitter.com/einsatzvw) oder [App.net](https://alpha.app.net/einsatzverwaltung). Bugs und Verbesserungsvorschl&auml;ge gerne auch als [Issue auf GitHub](https://github.com/abrain/einsatzverwaltung/issues).
+
+= Meine eMails mag ich am liebsten verschl&uuml;sselt und signiert, hast Du da was? =
+
+F&uuml;r eMails von/an [kontakt@abrain.de](mailto:kontakt@abrain.de) kann ich PGP anbieten, Schl&uuml;ssel-ID 8752EB8F.
+
+= Du oder Sie? =
+
+Das Du halte ich f&uuml;r die angenehmere Arbeitsgrundlage, aber man darf mich gerne auch siezen ohne dass ich mich alt f&uuml;hle.
 
 == Changelog ==
+
+= 0.9.1 =
+* Getestet mit WordPress 4.2
+* Fehlerbehebung: Administratoren hatten nicht sofort nach der Installation des Plugins Zugriff auf alle Funktionen
+* Verbesserung: &Uuml;bersichtsseite der Fahrzeuge bzw. externen Einsatzmittel im Adminbereich zeigt jetzt auch die verlinkte Fahrzeugseite bzw. die angegebene URL
+* Kontaktinformationen und FAQs aktualisiert
+
+= 0.9.0 =
+* Komplettsanierung: Unter der Haube wurde kr&auml;ftig umgebaut und zusammengefasst, klarere Strukturen beschleunigen die Entwicklung
+* Neu: Spalten der Einsatzliste sind jetzt einstellbar
+* Neu: F&uuml;r die Einsatzliste stehen mehr Spalten zur Auswahl (Alarmierungsart, Dauer, Einsatzart, Einsatzleiter, Einsatzort, Fahrzeuge, Laufende Nummer, Mannschaftsst&auml;rke, Weitere Kr&auml;fte)
+* Verbesserung: Die Mannschaftst&auml;rke muss keine einzelne Zahl mehr sein, Angaben wie 1:8 sind m&ouml;glich
+* Fehlerbehebung: Seitenweise Navigation im Jahresarchiv funktionierte nicht direkt nach der Aktivierung
+* Font Awesome auf Version 4.3 aktualisiert
+* Hinweis: Dieses Update entfernt alle Eintr&auml;ge zur Mannschaftsst&auml;rke, die 0 lauten. Ein Backup der Datenbank vor dem Update wird empfohlen.
 
 = 0.8.4 =
 * Fehlerbehebung: Erstellen von Standard-WordPress-Beitr&auml;gen war beeintr&auml;chtigt
@@ -79,7 +104,7 @@ Entweder [per Mail](mailto:kontakt@abrain.de), auf [Twitter](https://twitter.com
 = 0.7.0 =
 * Neu: Berechtigung zur Verwaltung von Einsatzberichten kann nun allen Benutzerrollen von WordPress zugeordnet werden
 * Verbesserung: Shortcode einsatzliste kann Tabelle nach Monaten getrennt darstellen
-* Hinweis: Der neue Shortcode-Parameter kann in der [Anleitung](http://www.abrain.de/software/einsatzverwaltung/anleitung/) nachgelesen werden
+* Hinweis: Der neue Shortcode-Parameter kann in der [Anleitung](https://www.abrain.de/software/einsatzverwaltung/anleitung/) nachgelesen werden
 * Hinweis (subtil): Es gibt mittlerweile auch eine [Facebook-Seite](https://www.facebook.com/einsatzverwaltung)
 
 = 0.6.0 =
@@ -94,7 +119,7 @@ Entweder [per Mail](mailto:kontakt@abrain.de), auf [Twitter](https://twitter.com
 * Verbesserung: Icons werden mit Font Awesome dargestellt
 * Fehlerbehebung: Shortcode einsatzjahre erzeugte falsche Links bei deaktivierten Permalinks
 * Fehlerbehebung: Seitennavigation im Jahresarchiv war defekt
-* Hinweis: Die neuen Shortcode-Parameter k&ouml;nnen in der [Anleitung](http://www.abrain.de/software/einsatzverwaltung/anleitung/) nachgelesen werden
+* Hinweis: Die neuen Shortcode-Parameter k&ouml;nnen in der [Anleitung](https://www.abrain.de/software/einsatzverwaltung/anleitung/) nachgelesen werden
 
 = 0.5.4 =
 * Fehlerbehebung: Datum f&uuml;r Feed wurde falsch gespeichert
@@ -164,6 +189,12 @@ Entweder [per Mail](mailto:kontakt@abrain.de), auf [Twitter](https://twitter.com
 
 == Upgrade Notice ==
 
+= 0.9.1 =
+Update f&uuml;r WordPress 4.2, sowie Fehlerbehebung und Verbesserung
+
+= 0.9.0 =
+Siehe Changelog f&uuml;r Details und wichtigen Hinweis
+
 = 0.8.4 =
 Wichtige Fehlerbehebung
 
@@ -183,7 +214,7 @@ Import aus wp-einsatz, Anzeige von Einsatzberichten als normale Beitr&auml;ge un
 Publizieren mit Jetpack aktiviert
 
 = 0.7.0 =
-Neue Rechteverwaltung, neue Darstellungsoption für Einsatzliste
+Neue Rechteverwaltung, neue Darstellungsoption f&uuml;r Einsatzliste
 
 = 0.6.0 =
 Neuerungen, Verbesserungen, Fehlerbehebungen. Da ist f&uuml;r alle was dabei.
@@ -192,7 +223,7 @@ Neuerungen, Verbesserungen, Fehlerbehebungen. Da ist f&uuml;r alle was dabei.
 Korrektur des Datums im Feed, bitte Update erst nach Backup durchf&uuml;hren
 
 = 0.5.3 =
-Erhöhte Kompatibilität für zukünftige Installationen
+Erh&ouml;hte Kompatibilit&auml;t f&uuml;r zuk&uuml;nftige Installationen
 
 = 0.5.2 =
 Mehr Einstellungen im Widget
